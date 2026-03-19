@@ -14,30 +14,32 @@ class TelegramFetcher:
     async def get_data(self):
         try:
             async with self.bot:
-                updates = await self.bot.get_updates(limit=1, allowed_updates=["message"])
+                updates = await self.bot.get_updates(allowed_updates=["message"])
                 
-                if not updates or not updates[0].message or not updates[0].message.text:
+                if not updates:
                     return {}
 
-                last_update = updates[0]
-                lines = [line.strip() for line in last_update.message.text.split('\n') if line.strip()]
-                
+                all_lines = []
+                for update in updates:
+                    if update.message and update.message.text:
+                        text_lines = [line.strip() for line in update.message.text.split('\n') if line.strip()]
+                        all_lines.extend(text_lines)
+
                 result = {}
-                for i in range(0, len(lines), 2):
-                    if i + 1 < len(lines):
-                        link = lines[i]
-                        name = lines[i+1]
-                        result[f"file{(i//2) + 1}"] = [name, link]
-                
+                for i in range(0, len(all_lines), 2):
+                    if i + 1 < len(all_lines):
+                        link = all_lines[i]
+                        name = all_lines[i+1]
+                        result[f"file{len(result) + 1}"] = [name, link]
+
                 if result:
-                    await self.bot.get_updates(offset=last_update.update_id + 1)
+                    await self.bot.get_updates(offset=updates[-1].update_id + 1)
                     return result
-                
                 return {}
         except (TimedOut, NetworkError):
             return {}
 
-if __name__ == "__main__":
-    fetcher = TelegramFetcher()
-    data = asyncio.run(fetcher.get_data())
-    print(data)
+# if __name__ == "__main__":
+#     instance = TelegramFetcher()
+#     data = asyncio.run(instance.get_data())
+#     print(data)
